@@ -1,13 +1,14 @@
 const { Telegraf, Markup } = require('telegraf');
 
-// ==================== 🔑 1. 机器人密钥配置 ====================
+// ==================== 🔑 1. 机器人密钥与配置（自动填写） ====================
 const BOT_TOKEN = process.env.BOT_TOKEN || '8981810303:AAHqqMaWhPhR9a98ZqbaEvcPKGGgu2ixdiY';
 
-// ==================== 🛠️ 2. 用户业务配置 ====================
 const CONFIG = {
-  // 👑 导师/管理员的 Telegram 数字 ID（用于接收和回复客户私聊）
-  // 在 TG 找 @userinfobot 发消息即可查到你的数字 ID
-  ADMIN_CHAT_ID: 7822042164, // 👈 换成你的真实数字 ID（注意不要带引号）
+  // 👑 作者的 Telegram 数字 ID
+  ADMIN_CHAT_ID: 7822042164,
+
+  // 🖼️ 欢迎小卡片的高清科技风格海报
+  WELCOME_PHOTO: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
 
   // 📢 官方频道配置
   CHANNEL_ID: '@xiiixpd', 
@@ -16,8 +17,7 @@ const CONFIG = {
   // 💬 官方群组配置
   GROUP_LINK: 'https://t.me/xiiixqz',
 
-  // 🤝 商务合作链接（单向客户引导）
-  // 填写你的个人私聊链接（如果客户不是单向可直连）
+  // 🤝 商务合作私聊链接
   ADMIN_CONTACT: 'https://t.me/idxiii',
 
   // 📁 作品集展示列表
@@ -25,44 +25,40 @@ const CONFIG = {
     {
       id: 'work_card_1',
       name: '🤖 自动发卡机器人 V1.0',
-      photo: 'https://picsum.photos/800/400?random=1',
+      photo: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80',
       description: `<b>💎 【全自动发卡机器人 V1.0】</b>\n\n` +
                    `━━━━━ <b>作品亮点</b> ━━━━━\n` +
                    `⚡️ <b>极速响应</b>：毫秒级回调\n` +
                    `💰 <b>多币种支持</b>：支持 USDT / TRX\n\n` +
                    `👇 <i>点击下方按钮体验实时演示：</i>`,
-      link: 'https://t.me/your_demo_bot_1'
+      link: 'https://t.me/xiiixpd'
     },
     {
       id: 'work_card_2',
       name: '🛡️ 社区防炸群卫士',
-      photo: 'https://picsum.photos/800/400?random=2',
+      photo: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80',
       description: `<b>🛡️ 【社区防炸群卫士系统】</b>\n\n` +
                    `━━━━━ <b>核心功能</b> ━━━━━\n` +
-                   `🤖 <b>智能验人</b>：入群九宫格验证\n\n` +
+                   `🤖 <b>智能验人</b>：入群九宫格验证，精准拦截清屏刷屏黑产\n\n` +
                    `👇 <i>点击下方按钮体验实时演示：</i>`,
-      link: 'https://t.me/your_demo_bot_2'
+      link: 'https://t.me/xiiixqz'
     }
   ]
 };
 
-// ==================== 🚀 3. 机器人核心逻辑 ====================
+// ==================== 🚀 2. 机器人核心逻辑 ====================
 const bot = new Telegraf(BOT_TOKEN);
 
-function buildMainMenu() {
-  return Markup.inlineKeyboard([
-    [Markup.button.callback('📁 浏览开发作品集 (Portfolio)', 'btn_portfolio')],
-    [
-      Markup.button.url('📢 官方频道', CONFIG.CHANNEL_LINK),
-      Markup.button.callback('💬 交流社区 (防炸)', 'btn_group')
-    ],
-    [
-      Markup.button.callback('🤝 商务合作 / 导师私聊 (破单向限制)', 'btn_contact_admin'),
-      Markup.button.switchToChat('🚀 分享给好友', ' 推荐一个很棒的 TelegramBot 开发者！')
-    ]
-  ]);
+// 📱 定义【常驻底部键盘】
+function getPermanentKeyboard() {
+  return Markup.keyboard([
+    ['📁 浏览作品集', '🤝 商务合作 / 私聊'],
+    ['📢 官方频道', '💬 交流社区 (防炸)'],
+    ['🏠 返回主菜单']
+  ]).resize();
 }
 
+// 检查频道关注状态
 async function checkChannelSub(ctx) {
   try {
     const member = await ctx.telegram.getChatMember(CONFIG.CHANNEL_ID, ctx.from.id);
@@ -72,146 +68,158 @@ async function checkChannelSub(ctx) {
   }
 }
 
-async function sendVisualCard(ctx, text, keyboard, photoUrl = '') {
-  await ctx.deleteMessage().catch(() => {});
-  if (photoUrl && photoUrl.trim() !== '') {
-    return ctx.replyWithPhoto(photoUrl, {
-      caption: text,
-      parse_mode: 'HTML',
-      ...keyboard
+// 🎨 渲染精美欢迎小卡片
+async function sendWelcomeCard(ctx) {
+  const userName = ctx.from.first_name || '尊贵的访客';
+  
+  // 排版精美欢迎文案
+  const welcomeCaption = `✨ <b> WELCOME TO MY STUDIO </b> ✨\n` +
+                         `━━━━━━━━━━━━━━━━━━━\n` +
+                         `👋 <b>你好，${userName}！</b>\n\n` +
+                         `我是作者的 24 小时全自动宣发与作品展示助手。\n` +
+                         `专注于 Telegram 生态机器人、极速交互与自动化定制服务。\n\n` +
+                         `💡 <b>小提示：</b>\n` +
+                         `如需商务合作或联系作者，直接在此对话框中<b>发送消息</b>即可！\n` +
+                         `━━━━━━━━━━━━━━━━━━━\n` +
+                         `👇 <b>请使用下方键盘自由导航体验：</b>`;
+
+  // 先发送底部的常驻键盘
+  await ctx.reply('🚀 正在载入主菜单...', getPermanentKeyboard()).catch(() => {});
+
+  // 发送精美科技海报小卡片
+  if (CONFIG.WELCOME_PHOTO && CONFIG.WELCOME_PHOTO.trim() !== '') {
+    return ctx.replyWithPhoto(CONFIG.WELCOME_PHOTO, {
+      caption: welcomeCaption,
+      parse_mode: 'HTML'
     });
   } else {
-    return ctx.replyWithHTML(text, keyboard);
+    return ctx.replyWithHTML(welcomeCaption);
   }
 }
 
 // 1️⃣ /start 指令处理
-bot.start((ctx) => {
-  const userName = ctx.from.first_name || '尊贵的访客';
-  const startMsg = `✨ <b>欢迎光临开发作品展示中心！</b>\n` +
-                   `━━━━━━━━━━━━━━━━━━━\n` +
-                   `👋 你好，<b>${userName}</b>！\n\n` +
-                   `我是您的 24 小时全自动宣发与作品展示助手。\n` +
-                   `如需商务合作或私聊，可直接在当前对话框给发消息留言！\n\n` +
-                   `👇 <b>请点击下方菜单开启体验：</b>`;
-  return sendVisualCard(ctx, startMsg, buildMainMenu());
-});
+bot.start((ctx) => sendWelcomeCard(ctx));
 
-// 2️⃣ 点击【商务合作 / 导师私聊】提示
-bot.action('btn_contact_admin', async (ctx) => {
-  await ctx.answerCbQuery().catch(() => {});
-  const contactMsg = `🤝 <b>商务合作与沟通通道</b>\n` +
-                     `━━━━━━━━━━━━━━━━━━━\n` +
-                     `💡 <b>双向/单向限制用户均可沟通：</b>\n\n` +
-                     `1️⃣ <b>直接私聊导师</b>：<a href="${CONFIG.ADMIN_CONTACT}">点击此处发起个人私聊</a>\n` +
-                     `2️⃣ <b>单向限制账号留言</b>：如果您是单向账号无法私聊，请<b>直接在此对话框中发送您的需求文字或图片</b>，导师会收到通知并直接回复您！`;
-  const contactMenu = Markup.inlineKeyboard([
-    [Markup.button.url('👤 试试直接私聊导师', CONFIG.ADMIN_CONTACT)],
-    [Markup.button.callback('⬅️ 返回主菜单', 'btn_main')]
-  ]);
-  return sendVisualCard(ctx, contactMsg, contactMenu);
-});
+// 2️⃣ 监听【常驻底部键盘】按钮点击
+bot.hears('🏠 返回主菜单', (ctx) => sendWelcomeCard(ctx));
 
-// 3️⃣ 点击【📁 浏览开发作品集】
-bot.action('btn_portfolio', async (ctx) => {
-  await ctx.answerCbQuery().catch(() => {});
+bot.hears('📁 浏览作品集', async (ctx) => {
   const isSubbed = await checkChannelSub(ctx);
 
   if (!isSubbed) {
     const blockMsg = `🔒 <b>访问受限：需要完成验证</b>\n` +
                      `━━━━━━━━━━━━━━━━━━━\n` +
-                     `⚠️ 请先加入我们的<b>【官方频道】</b>后再点击下方验证按钮解锁作品集！`;
+                     `⚠️ 请先加入我们的<b>【官方频道】</b>后再点击解锁作品集！`;
     const blockMenu = Markup.inlineKeyboard([
-      [Markup.button.url('📢 第一步：点击加入官方频道', CONFIG.CHANNEL_LINK)],
-      [Markup.button.callback('✅ 第二步：我已加入，解锁作品集', 'btn_portfolio')],
-      [Markup.button.callback('⬅️ 返回主菜单', 'btn_main')]
+      [Markup.button.url('📢 点击加入官方频道', CONFIG.CHANNEL_LINK)],
+      [Markup.button.callback('✅ 我已加入，点此解锁', 'btn_portfolio_check')]
     ]);
-    return sendVisualCard(ctx, blockMsg, blockMenu);
+    return ctx.replyWithHTML(blockMsg, blockMenu);
   }
 
   let portfolioMsg = `📂 <b>精选作品集列表</b>\n` +
                      `━━━━━━━━━━━━━━━━━━━\n` +
-                     `请点击下方对应的作品卡片查看详情：`;
+                     `请点击下方对应的作品查看详情：`;
   const workButtons = CONFIG.WORKS.map(work => [
     Markup.button.callback(work.name, `show_work_${work.id}`)
   ]);
-  workButtons.push([Markup.button.callback('⬅️ 返回主菜单', 'btn_main')]);
 
-  return sendVisualCard(ctx, portfolioMsg, Markup.inlineKeyboard(workButtons));
+  return ctx.replyWithHTML(portfolioMsg, Markup.inlineKeyboard(workButtons));
 });
 
-// 4️⃣ 统一回调处理
-bot.on('callback_query', async (ctx) => {
-  const actionData = ctx.callbackQuery.data;
+bot.hears('🤝 商务合作 / 私聊', (ctx) => {
+  const contactMsg = `🤝 <b>商务合作与沟通通道</b>\n` +
+                     `━━━━━━━━━━━━━━━━━━━\n` +
+                     `💡 <b>双向/单向限制用户均可沟通：</b>\n\n` +
+                     `1️⃣ <b>直接私聊作者</b>：<a href="${CONFIG.ADMIN_CONTACT}">点击此处发起个人私聊</a>\n` +
+                     `2️⃣ <b>单向限制账号留言</b>：如果您是单向账号无法私聊，请<b>直接在此对话框中发送您的需求文字或图片</b>，作者会收到通知并直接回复您！`;
+  const contactMenu = Markup.inlineKeyboard([
+    [Markup.button.url('👤 点击直接私聊作者', CONFIG.ADMIN_CONTACT)]
+  ]);
+  return ctx.replyWithHTML(contactMsg, contactMenu);
+});
+
+bot.hears('📢 官方频道', (ctx) => {
+  return ctx.replyWithHTML(`📢 <b>官方频道入口：</b>\n${CONFIG.CHANNEL_LINK}`);
+});
+
+bot.hears('💬 交流社区 (防炸)', (ctx) => {
+  const groupMsg = `🛡️ <b>官方交流社区 - 安全防炸群通道</b>\n` +
+                   `━━━━━━━━━━━━━━━━━━━\n` +
+                   `请点击下方专属安全验证链接加入交流群：`;
+  const groupMenu = Markup.inlineKeyboard([
+    [Markup.button.url('👉 点击进入官方验证社区', CONFIG.GROUP_LINK)]
+  ]);
+  return ctx.replyWithHTML(groupMsg, groupMenu);
+});
+
+// 3️⃣ 处理内嵌按钮点击
+bot.action('btn_portfolio_check', async (ctx) => {
   await ctx.answerCbQuery().catch(() => {});
-
-  if (actionData === 'btn_main') {
-    const userName = ctx.from.first_name || '尊贵的访客';
-    const startMsg = `✨ <b>欢迎光临开发作品展示中心！</b>\n` +
-                     `━━━━━━━━━━━━━━━━━━━\n` +
-                     `👋 你好，<b>${userName}</b>！\n\n` +
-                     `请点击下方菜单开启体验：`;
-    return sendVisualCard(ctx, startMsg, buildMainMenu());
+  const isSubbed = await checkChannelSub(ctx);
+  if (!isSubbed) {
+    return ctx.reply('⚠️ 您尚未加入官方频道，请加入后再试！');
   }
+  let portfolioMsg = `📂 <b>精选作品集列表</b>\n━━━━━━━━━━━━━━━━━━━\n请点击下方对应的作品查看详情：`;
+  const workButtons = CONFIG.WORKS.map(work => [
+    Markup.button.callback(work.name, `show_work_${work.id}`)
+  ]);
+  return ctx.replyWithHTML(portfolioMsg, Markup.inlineKeyboard(workButtons));
+});
 
-  if (actionData === 'btn_group') {
-    const groupMsg = `🛡️ <b>官方交流社区 - 安全防炸群通道</b>\n` +
-                     `━━━━━━━━━━━━━━━━━━━\n` +
-                     `请点击下方专属安全验证链接加入交流群：`;
-    const groupMenu = Markup.inlineKeyboard([
-      [Markup.button.url('👉 点击进入官方验证社区', CONFIG.GROUP_LINK)],
-      [Markup.button.callback('⬅️ 返回主菜单', 'btn_main')]
-    ]);
-    return sendVisualCard(ctx, groupMsg, groupMenu);
-  }
+bot.action(/show_work_(.+)/, async (ctx) => {
+  await ctx.answerCbQuery().catch(() => {});
+  const workId = ctx.match[1];
+  const work = CONFIG.WORKS.find(w => w.id === workId);
 
-  if (actionData.startsWith('show_work_')) {
-    const workId = actionData.replace('show_work_', '');
-    const work = CONFIG.WORKS.find(w => w.id === workId);
+  if (work) {
+    const cardMenu = Markup.inlineKeyboard([
+      work.link ? [Markup.button.url('🔗 体验实时演示 / 查看详情', work.link)] : []
+    ].filter(row => row.length > 0));
 
-    if (work) {
-      const cardMenu = Markup.inlineKeyboard([
-        work.link ? [Markup.button.url('🔗 体验实时演示 / 查看详情', work.link)] : [],
-        [Markup.button.callback('🔙 返回作品列表', 'btn_portfolio')],
-        [Markup.button.callback('🏠 返回主菜单', 'btn_main')]
-      ].filter(row => row.length > 0));
-
-      return sendVisualCard(ctx, work.description, cardMenu, work.photo);
+    if (work.photo && work.photo.trim() !== '') {
+      return ctx.replyWithPhoto(work.photo, {
+        caption: work.description,
+        parse_mode: 'HTML',
+        ...cardMenu
+      });
+    } else {
+      return ctx.replyWithHTML(work.description, cardMenu);
     }
   }
 });
 
-// 5️⃣ 📩 客服核心功能：转发普通用户的私聊留言给导师
+// 4️⃣ 📩 双向客服功能：中转私聊消息
 bot.on('message', async (ctx) => {
-  // 如果消息来自管理员本人
+  const text = ctx.message.text;
+  if (['🏠 返回主菜单', '📁 浏览作品集', '🤝 商务合作 / 私聊', '📢 官方频道', '💬 交流社区 (防炸)'].includes(text)) {
+    return;
+  }
+
+  // 作者本人回复逻辑
   if (ctx.from.id === Number(CONFIG.ADMIN_CHAT_ID)) {
-    // 检查管理员是不是正在“回复”某条被转发的消息
     if (ctx.message.reply_to_message && ctx.message.reply_to_message.forward_from) {
       const targetUserId = ctx.message.reply_to_message.forward_from.id;
       try {
-        // 把管理员的回复复制还给客户
         await ctx.telegram.copyMessage(targetUserId, ctx.chat.id, ctx.message.message_id);
         return ctx.reply('✅ 你的回复已成功送达给客户！');
       } catch (err) {
-        return ctx.reply(`❌ 回复失败，可能客户已关停机器人。错误信息: ${err.message}`);
+        return ctx.reply(`❌ 回复失败，可能客户已关停机器人。错误: ${err.message}`);
       }
     }
-    return; // 如果不是回复操作，管理员日常消息不处理
+    return;
   }
 
-  // 如果消息来自普通客户：转发该消息给管理员
+  // 普通客户留言转发给作者
   try {
-    // 告知客户消息已收到
-    await ctx.reply('📩 <b>您的留言已成功传达给导师！</b>\n导师将在看到后第一时间在此回复您，请留意系统通知。', { parse_mode: 'HTML' });
-
-    // 转发给导师
+    await ctx.reply('📩 <b>您的留言已成功传达给作者！</b>\n作者将在看到后第一时间在此回复您，请留意系统通知。', { parse_mode: 'HTML' });
     await ctx.telegram.forwardMessage(CONFIG.ADMIN_CHAT_ID, ctx.chat.id, ctx.message.message_id);
   } catch (error) {
     console.error('转发留言失败:', error);
   }
 });
 
-// 6️⃣ 网页健康检查服务器与启动
+// 5️⃣ 网页健康检查与服务启动
 const http = require('http');
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -219,9 +227,7 @@ http.createServer((req, res) => {
   res.end('Bot Service Running!\n');
 }).listen(PORT, () => console.log(`Server listening on port ${PORT}`));
 
-bot.launch().then(() => console.log('✅ Telegram 机器人与客服中转系统已成功拉起！'));
+bot.launch().then(() => console.log('✅ Telegram 机器人已成功启动！'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
-// 简单 HTTP 监听，防止 Render Web Service 健康检查报错 const http = require('http'); const PORT = process.env.PORT || 3000; http.createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('Bot is running alive!\n'); }).listen(PORT, () => { console.log(HTTP Health Check Server listening on port ${PORT}); });
