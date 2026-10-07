@@ -197,3 +197,4 @@ bot.launch().then(() => {
 // 优雅终止机制
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+// 简单 HTTP 监听，防止 Render Web Service 健康检查报错 const http = require('http'); const PORT = process.env.PORT || 3000; http.createServer((req, res) => { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end('Bot is running alive!\n'); }).listen(PORT, () => { console.log(HTTP Health Check Server listening on port ${PORT}); });
